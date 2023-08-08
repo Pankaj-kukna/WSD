@@ -1,0 +1,48 @@
+#include <SPI.h>
+#include <SD.h>
+
+// Define the SD card chip select pin
+const int chipSelect = 5;
+
+void setup() {
+  // Initialize Serial Monitor
+  Serial.begin(115200);
+  
+  // Initialize SPI communication
+  SPI.begin();
+  
+  // Initialize SD card
+  if (!SD.begin(chipSelect)) {
+    Serial.println("SD card initialization failed!");
+    while (1);
+  }
+  
+  Serial.println("SD card initialized successfully");
+}
+
+void loop() {
+  // Wait for a command from ESP32-CAM
+  if (Serial.available() > 0) {
+    char command = Serial.read();
+    if (command == 'T') {
+      // Transfer image from ESP32-CAM to ESP32 WROOM
+      
+      // Open a file on SD card for writing
+      File file = SD.open("/image.jpg", FILE_WRITE);
+      if (!file) {
+        Serial.println("Failed to open file for writing");
+        return;
+      }
+      
+      // Receive image data from ESP32-CAM and write to the file
+      while (Serial.available()) {
+        file.write(Serial.read());
+      }
+      
+      // Close the file
+      file.close();
+      
+      Serial.println("Image transfer complete");
+    }
+  }
+}

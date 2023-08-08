@@ -1,0 +1,21 @@
+In setup add:
+
+WIFI_Connect();
+
+And in loop:
+
+if (WiFi.status() != WL_CONNECTED) WIFI_Connect(); //Make sure wifi is still connected
+
+And add this to be save before setup() to avoid compiler warnings.
+
+void WIFI_Connect()
+{
+WiFi.disconnect();
+WiFi.mode(WIFI_STA);
+WiFi.begin(SSID, PASSWORD); //Use #define SSID “YourWiFi” etc the top etc
+for (int i = 0; i < 60; i++) {
+if ( WiFi.status() != WL_CONNECTED ) vTaskDelay(500); //Need this to feed the watchdog!
+}
+if (debug) Serial.println(“Connected to wifi”);
+Serial.println(WiFi.macAddress());
+}

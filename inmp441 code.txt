@@ -1,0 +1,56 @@
+#include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
+#include <Wire.h>
+#include <Adafruit_INMP441.h>
+
+#define SD_CS_PIN 5
+
+Adafruit_INMP441 inmp441;
+
+File audioFile;
+const char* fileName = "/audio.wav";
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
+  if (!SD.begin(SD_CS_PIN)) {
+    Serial.println("SD card initialization failed!");
+    while (1);
+  }
+
+  if (!inmp441.begin()) {
+    Serial.println("Failed to initialize INMP441 microphone!");
+    while (1);
+  }
+
+  inmp441.setGain(Adafruit_INMP441::GAIN_2X);
+
+  audioFile = SD.open(fileName, FILE_WRITE | O_CREAT);
+  if (!audioFile) {
+    Serial.println("Failed to create audio file!");
+    while (1);
+  }
+
+  Serial.println("Recording audio...");
+}
+
+void loop() {
+  int16_t buffer[512];
+  uint8_t bufferBytes[1024];
+
+  inmp441.read(buffer, sizeof(buffer));
+
+  for (size_t i = 0; i < sizeof(buffer); i++) {
+    bufferBytes[2 * i] = buffer[i] & 0xFF;
+    bufferBytes[2 * i + 1] = (buffer[i] >> 8) & 0xFF;
+  }
+
+  audioFile.write(bufferBytes, sizeof(bufferBytes));
+}
+
+void stopRecording() {
+  audioFile.close();
+  Serial.println("Audio recording stopped.");
+}

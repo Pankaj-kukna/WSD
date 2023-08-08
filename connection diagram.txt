@@ -1,0 +1,20 @@
+ESP32 WROOM (Master):
+
+GPIO 18 (CLK) to GPIO 14 (CLK) on the ESP32-CAM
+GPIO 23 (MISO) to GPIO 13 (SDO) on the ESP32-CAM
+GPIO 19 (MOSI) to GPIO 15 (SDI) on the ESP32-CAM
+GPIO 5 (CS) to GPIO 4 (CS) on the ESP32-CAM
+GND to GND on the ESP32-CAM
+3.3V to 3.3V on the ESP32-CAM
+
+
+
+SD Card Module:
+
+CLK to GPIO 18 (CLK) on the ESP32 WROOM
+MISO to GPIO 19 (MISO) on the ESP32 WROOM
+MOSI to GPIO 23 (MOSI) on the ESP32 WROOM
+CS to GPIO 5 (CS) on the ESP32 WROOM
+GND to GND on the ESP32 WROOM
+3.3V to 3.3V on the ESP32 WROOM
+
