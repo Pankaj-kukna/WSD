@@ -1,11 +1,19 @@
 #include "esp_camera.h"
 #include "Arduino.h"
 #include "FS.h"                // SD Card ESP32
-#include "SD_MMC.h"            // SD Card ESP32
+#include "SD.h"                // SD Card ESP32
+#include "SPI.h"               // SD Card ESP32
 #include "soc/soc.h"           // Disable brownour problems
 #include "soc/rtc_cntl_reg.h"  // Disable brownour problems
 #include "driver/rtc_io.h"
 #include <EEPROM.h>  // read and write from flash memory
+
+#define SD_SCK   14
+#define SD_MISO  12
+#define SD_MOSI  13
+#define SD_CS    15
+
+SPIClass spi = SPIClass(HSPI);
 
 // define the number of bytes you want to access
 #define EEPROM_SIZE 1
@@ -37,6 +45,16 @@ void setup() {
   Serial.begin(115200);
   //Serial.setDebugOutput(true);
   //Serial.println();
+  spi.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+  Serial.print("MOSI: ");
+  Serial.println(SD_MOSI);
+  Serial.print("MISO: ");
+  Serial.println(SD_MISO);
+  Serial.print("SCK: ");
+  Serial.println(SD_SCK);
+  Serial.print("SS: ");
+  Serial.println(SD_CS);  
+  delay(1000);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -101,17 +119,22 @@ void setup() {
   s->set_dcw(s,01);                         // 0 = disable , 1 = enable
   s->set_colorbar(s, 0);                    // 0 = disable , 1 = enable
   delay(200);
+
   //Serial.println("Starting SD Card");
-  if (!SD_MMC.begin()) {
+  if (!SD.begin(SD_CS,spi,80000000)) {
     Serial.println("SD Card Mount Failed");
     return;
   }
 
-  uint8_t cardType = SD_MMC.cardType();
+  uint8_t cardType = SD.cardType();
   if (cardType == CARD_NONE) {
     Serial.println("No SD Card attached");
     return;
   }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
 
   camera_fb_t *fb = NULL;
 
@@ -128,10 +151,10 @@ void setup() {
   // Path where new picture will be saved in SD Card
   String path = "/picture" + String(pictureNumber) + ".jpg";
 
-  fs::FS &fs = SD_MMC;
+  fs::FS &fs = SD;
   Serial.printf("Picture file name: %s\n", path.c_str());
-
-  File file = fs.open(path.c_str(), FILE_WRITE);
+  
+  File file = fs.open(path, FILE_WRITE);
   if (!file) {
     Serial.println("Failed to open file in writing mode");
   } else {
