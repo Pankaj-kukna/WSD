@@ -9,7 +9,7 @@
 #include <EEPROM.h>  // read and write from flash memory
 
 #define SD_SCK   14
-#define SD_MISO  12
+#define SD_MISO  4
 #define SD_MOSI  13
 #define SD_CS    15
 
