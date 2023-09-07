@@ -1,7 +1,5 @@
 #include "esp_camera.h"
 #include "Arduino.h"
-#include "soc/soc.h"           // Disable brownour problems
-#include "soc/rtc_cntl_reg.h"  // Disable brownour problems
 #include "driver/rtc_io.h"
 #include "SerialTransfer.h"
 
@@ -25,7 +23,7 @@
 #define PCLK_GPIO_NUM     22
 
 SerialTransfer myTransfer;
-HardwareSerial Comm(1);
+HardwareSerial Comm(2);
 
 struct img_meta_data{
   uint16_t counter;
@@ -33,11 +31,10 @@ struct img_meta_data{
   uint16_t numLoops;
   uint16_t sizeLastLoop;
 } ImgMetaData;
+ 
 const uint16_t PIXELS_PER_PACKET = MAX_PACKET_SIZE - sizeof(ImgMetaData);
 
 void setup(){
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
- 
   Serial.begin(115200);                     // Define and start serial monitor
   // 115200,256000,512000,962100
   Comm.begin(962100, SERIAL_8N1,13,14);     //, Comm_Txd_pin, Comm_Rxd_pin); // Define and start Comm serial port
@@ -74,7 +71,6 @@ void setup(){
    config.jpeg_quality = 12;
    config.fb_count = 1;
  }
-
   // Init Camera
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK){
@@ -82,32 +78,55 @@ void setup(){
     return;
   }
 }
-
 void loop(){
   uint16_t startIndex = 0;
   camera_fb_t * fb = NULL;
   //Take Picture with Camera
   fb = esp_camera_fb_get(); 
-   
   ImgMetaData.imSize       = fb->len;                             //sizeof(myFb);
   ImgMetaData.numLoops     = (fb->len / PIXELS_PER_PACKET) + 1;   //(sizeof(myFb)/PIXELS_PER_PACKET) + 1; 
   ImgMetaData.sizeLastLoop = fb->len % PIXELS_PER_PACKET;         //(sizeof(myFb)%PIXELS_PER_PACKET);
 
+  //Serial.println(ImgMetaData.counter);
+  //Serial.println(ImgMetaData.imSize);
+  //Serial.println(ImgMetaData.numLoops);
+  //Serial.println(ImgMetaData.sizeLastLoop);
+
   for(ImgMetaData.counter=1; ImgMetaData.counter<=ImgMetaData.numLoops; ImgMetaData.counter++){
-    myTransfer.txObj(ImgMetaData,0, sizeof(ImgMetaData));
-    stuffPixels(fb->buf, startIndex, sizeof(ImgMetaData), PIXELS_PER_PACKET);  
-    myTransfer.sendData(MAX_PACKET_SIZE);
+    myTransfer.txObj(ImgMetaData);
+    Serial.println(ImgMetaData.counter);
+    stuffPixels(fb->buf, startIndex, sizeof(ImgMetaData));    
     startIndex += PIXELS_PER_PACKET;    
+    delay(10);
   }
+  Serial.println("reached point 1");
+  printBuf(fb->buf,ImgMetaData.imSize);
   esp_camera_fb_return(fb);   //clear camera memory
-  delay(5000);
-}
-
-
-void stuffPixels(const uint8_t * buf, const uint16_t &bufStartIndex, const uint16_t &txStartIndex, const uint16_t &len){
-  uint16_t txi = txStartIndex;
-  for (uint16_t i=bufStartIndex; i<(bufStartIndex + len); i++)  {
-    myTransfer.packet.txBuff[txi] = buf[i];
-    txi++;
+  delay(15000); 
   }
+
+void stuffPixels(const uint8_t *pixelBuff, uint16_t bufStartIndex, uint16_t txStartIndex){
+  uint16_t txi = txStartIndex;
+  uint16_t i=bufStartIndex;
+  for (i; i<(bufStartIndex + 246); i++) {
+    myTransfer.packet.txBuff[txi] = pixelBuff[i];
+   /* Serial.print(myTransfer.packet.txBuff[txi]);
+    Serial.print(",");
+    Serial.print(pixelBuff[i]);
+    Serial.print(",");
+    Serial.print(txi);
+    Serial.print(",");
+    Serial.print(i);
+    Serial.println();*/
+    txi++;
+    }
+     myTransfer.sendDatum(myTransfer.packet.txBuff);    
+   }
+
+void printBuf(const uint8_t* pixelBuffer,uint16_t buffersize){
+  Serial.println("Pixel Values: { ");
+  for (uint16_t k=0; k<buffersize; k++){
+    Serial.print(pixelBuffer[k]); 
+  }
+  Serial.println("}");
 }
